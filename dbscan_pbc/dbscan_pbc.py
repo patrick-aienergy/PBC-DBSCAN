@@ -1,6 +1,7 @@
 from sklearn.cluster import DBSCAN
 import numpy as np
 
+
 class DBSCAN_PBC(DBSCAN):
     """
     DBSCAN with support for Periodic Boundary Conditions (PBC).
@@ -19,7 +20,7 @@ class DBSCAN_PBC(DBSCAN):
                          metric_params=metric_params, algorithm=algorithm,
                          leaf_size=leaf_size, p=p, n_jobs=n_jobs)
 
-    def fit(self, X, pbc_lower=0, pbc_upper=1, return_padded_dbs=False):
+    def fit(self, X, pbc_lower=0, pbc_upper=1, return_padded_dbs=False, sample_weight=None):
         """
         Fit the DBSCAN model while applying periodic boundary conditions to the data.
         
@@ -27,6 +28,7 @@ class DBSCAN_PBC(DBSCAN):
         - X: array-like of shape (n_samples, n_features). Training instances to cluster.
         - pbc_lower, pbc_upper: scalar or array-like of shape (n_features). Define the periodic boundary limits. If None, no boundary condition is applied. If scalar the same boundary is applied to all features.
         - return_padded_dbs: boolean, whether to return the padded DBSCAN properties.
+        - sample_weights: Weight of each sample. See the plain DBSCAN method for more.
         
         Returns:
         - db: the fitted DBSCAN model.
@@ -88,9 +90,16 @@ class DBSCAN_PBC(DBSCAN):
         
         # Pad the boundary points
         padded_points, source_idx = self._pad_boundary_points(X, self.eps, L)
-        
+        if sample_weight is not None:
+            padded_sample_weight = np.concatenate([
+                sample_weight,
+                sample_weight[source_idx],
+            ])
+        else:
+            padded_sample_weight = None
+
         # Apply DBSCAN on the padded points
-        db = super().fit(padded_points)
+        db = super().fit(padded_points, sample_weight=padded_sample_weight)
         labels = db.labels_
 
         # Merge clusters after periodic boundary conditions
