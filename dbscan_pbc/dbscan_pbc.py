@@ -1,6 +1,30 @@
 from sklearn.cluster import DBSCAN
 import numpy as np
 
+"""
+MIT License
+
+Copyright (c) 2025 XanderDW
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 class DBSCAN_PBC(DBSCAN):
     """
     DBSCAN with support for Periodic Boundary Conditions (PBC).
@@ -19,7 +43,7 @@ class DBSCAN_PBC(DBSCAN):
                          metric_params=metric_params, algorithm=algorithm,
                          leaf_size=leaf_size, p=p, n_jobs=n_jobs)
 
-    def fit(self, X, pbc_lower=0, pbc_upper=1, return_padded_dbs=False):
+    def fit(self, X, pbc_lower=0, pbc_upper=1, return_padded_dbs=False, sample_weight=None):
         """
         Fit the DBSCAN model while applying periodic boundary conditions to the data.
         
@@ -27,6 +51,7 @@ class DBSCAN_PBC(DBSCAN):
         - X: array-like of shape (n_samples, n_features). Training instances to cluster.
         - pbc_lower, pbc_upper: scalar or array-like of shape (n_features). Define the periodic boundary limits. If None, no boundary condition is applied. If scalar the same boundary is applied to all features.
         - return_padded_dbs: boolean, whether to return the padded DBSCAN properties.
+        - sample_weights: Weight of each sample. See the plain DBSCAN method for more.
         
         Returns:
         - db: the fitted DBSCAN model.
@@ -88,9 +113,16 @@ class DBSCAN_PBC(DBSCAN):
         
         # Pad the boundary points
         padded_points, source_idx = self._pad_boundary_points(X, self.eps, L)
-        
+        if sample_weight is not None:
+            padded_sample_weight = np.concatenate([
+                sample_weight,
+                sample_weight[source_idx],
+            ])
+        else:
+            padded_sample_weight = None
+
         # Apply DBSCAN on the padded points
-        db = super().fit(padded_points)
+        db = super().fit(padded_points, sample_weight=padded_sample_weight)
         labels = db.labels_
 
         # Merge clusters after periodic boundary conditions
